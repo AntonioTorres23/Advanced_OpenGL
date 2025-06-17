@@ -19,6 +19,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 unsigned int loadTexture(const char* path);
+unsigned int loadCubemap(std::vector<std::string> faces);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -80,9 +81,8 @@ int main()
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glEnable(GL_BLEND);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // build and compile shaders
     // -------------------------
@@ -92,7 +92,9 @@ int main()
 
     Shader Plane("plane.vs", "plane.fs");
 
-    Shader Trans("blending.vs", "blending.fs");
+    //Shader Trans("blending.vs", "blending.fs");
+
+    Shader Skybox("cubemap.vs", "cubemap.fs");
 
     // load models
     // -----------
@@ -109,7 +111,7 @@ int main()
     unsigned int VBO;
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, siz_of_verts, vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, siz_of_verts, &vertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glBindVertexArray(0);
@@ -119,13 +121,24 @@ int main()
     glGenBuffers(1, &PlaneVBO);
     glBindVertexArray(PlaneVAO);
     glBindBuffer(GL_ARRAY_BUFFER, PlaneVBO);
-    glBufferData(GL_ARRAY_BUFFER, siz_of_plane, planeVertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, siz_of_plane, &planeVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glBindVertexArray(0);
 
+    unsigned int CubemapVAO, CubemapVBO;
+    glGenVertexArrays(1, &CubemapVAO);
+    glGenBuffers(1, &CubemapVBO);
+    glBindVertexArray(CubemapVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, CubemapVBO);
+    glBufferData(GL_ARRAY_BUFFER, siz_of_skybox, &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glBindVertexArray(0);
+
+    /*
     unsigned int transparentVAO, transparentVBO;
     glGenVertexArrays(1, &transparentVAO);
     glGenBuffers(1, &transparentVBO);
@@ -137,22 +150,31 @@ int main()
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glBindVertexArray(0);
+    */
 
     unsigned int texture = loadTexture("sand_grey.png");
 
-    unsigned int transtexture = loadTexture("blending_transparent_window.png");
+    unsigned int cubemapTexture = loadCubemap(faces);
 
+    // unsigned int transtexture = loadTexture("blending_transparent_window.png");
+
+    /*
     std::map<float, glm::vec3> sorted;
     for (unsigned int i = 0; i < vegetation.size(); i++)
     {
         float distance = glm::length(camera.Position - vegetation[i]);
         sorted[distance] = vegetation[i];
     }
+    */
 
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    
+    // skybox cube
+    Skybox.use();
+    Skybox.setInt("skybox", 0);
+
+    cout << cubemapTexture << std::endl;
 
     // render loop
     // -----------
@@ -254,22 +276,25 @@ int main()
             LightCube.setMat4("model", model);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
-
+        glBindVertexArray(0);
+        
         Plane.use();
         Plane.setInt("texture1", 0);
         Plane.setMat4("projection", projection);
         Plane.setMat4("view", view);
         Plane.setMat4("model", glm::mat4(1.0f));
         glBindVertexArray(PlaneVAO);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        //glBindVertexArray(0);
+        glBindVertexArray(0);
 
-        Trans.use();
-        Trans.setInt("tranz", 0);
-        Trans.setMat4("projection", projection);
-        Trans.setMat4("view", view);
+        //Trans.use();
+        //Trans.setInt("tranz", 0);
+        //Trans.setMat4("projection", projection);
+        //Trans.setMat4("view", view);
         // LEFT OFF HERE
+        /*
         glBindVertexArray(transparentVAO);
         for (std::map<float, glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); it++)
         {
@@ -279,6 +304,23 @@ int main()
             glBindTexture(GL_TEXTURE_2D, transtexture);
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }
+        */
+
+        glDepthFunc(GL_LEQUAL);
+        Skybox.use();
+        view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from view matrix
+
+        Skybox.setMat4("view", view);
+        Skybox.setMat4("projection", projection);
+
+        // DRAW skybox cube
+        glBindVertexArray(CubemapVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+        glDepthFunc(GL_LESS);
+
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
@@ -287,6 +329,7 @@ int main()
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
+
     glfwTerminate();
     return 0;
 }
@@ -368,8 +411,8 @@ unsigned int loadTexture(char const* path)
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, format == GL_RGBA ? GL_REPEAT : GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -382,4 +425,36 @@ unsigned int loadTexture(char const* path)
     }
 
     return textureID;
+}
+
+unsigned int loadCubemap(std::vector<std::string> faces)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    int width, height, nrChannels;
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        if (data)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+            stbi_image_free(data);
+        }
+        else
+        {
+            std::cout << "Cubemap Texture Failed to Load Path" << faces[i] << std::endl;
+            stbi_image_free(data);
+        }
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    return textureID;
+
 }

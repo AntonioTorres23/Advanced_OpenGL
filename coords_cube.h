@@ -9,15 +9,21 @@ extern glm::vec3 pointlightpositions[];
 
 extern float planeVertices[];
 
-extern std::vector<glm::vec3> vegetation;
+//extern std::vector<glm::vec3> vegetation;
 
-extern float transparentVertices[];
+//extern float transparentVertices[];
 
 extern float siz_of_verts;
 
 extern float siz_of_plane;
 
-extern float siz_of_trans;
+//extern float siz_of_trans;
+
+extern std::vector<std::string> faces;
+
+extern float skyboxVertices[];
+
+extern float siz_of_skybox;
 
 #endif // !COORDS
 

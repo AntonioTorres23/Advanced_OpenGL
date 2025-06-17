@@ -179,6 +179,8 @@
     <None Include="1.light_cube.vs" />
     <None Include="blending.fs" />
     <None Include="blending.vs" />
+    <None Include="cubemap.fs" />
+    <None Include="cubemap.vs" />
     <None Include="plane.fs" />
     <None Include="plane.vs" />
   </ItemGroup>
