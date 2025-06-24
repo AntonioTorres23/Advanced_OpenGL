@@ -152,6 +152,7 @@ std::vector<glm::vec3> windows
 };
 */
 
+/*
 std::vector<std::string> faces
 {
     "skybox/right.jpg",
@@ -160,6 +161,19 @@ std::vector<std::string> faces
     "skybox/bottom.jpg",
     "skybox/front.jpg",
     "skybox/back.jpg"
+
+};
+*/
+
+
+std::vector<std::string> faces
+{
+    "water.rgba16.png",
+    "water.rgba16.png",
+    "water.rgba16.png",
+    "water.rgba16.png",
+    "water.rgba16.png",
+    "water.rgba16.png"
 
 };
 

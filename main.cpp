@@ -39,6 +39,7 @@ glm::vec3 lightPosition(1.2f, 1.0f, 2.0f);
 
 int main()
 {
+
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
